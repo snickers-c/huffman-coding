@@ -1,86 +1,204 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// typedef struct {
-//   int cnt;  // count
-//   char sbl; // symbol
-// } keyval;
+typedef struct Node {
+  unsigned char symbol;
+  int frequency;
+  struct Node *left;
+  struct Node *right;
+} Node;
 
-// keyval *symbol = malloc(sizeof(keyval) * symbol_size);
+typedef struct Minheap {
+  int size;
+  int capacity;
+  Node **array;
+} Minheap;
 
-// zapis hodnôť
-// symbol[2].s = 'a';
-// symbol[2].c = 5;
-// for (int i = 0; i < 25; i++) {
-//   symbol[i].c = i;
-//   symbol[i].s = 65 + i;
-// }
+typedef struct Symbol_Frequency {
+  unsigned char symbol;
+  int frequency;
+} Symbol_Frequency;
 
-// vypis hodnôt
-// for (int i = 0; i < 25; i++) {
-// printf("%c - %d\n", symbol[0].sbl, symbol[0].cnt);
-// }
+Node *new_node(unsigned char symbol, int frequency) {
+  Node *node = (Node *)malloc(sizeof(Node));
+  node->symbol = symbol;
+  node->frequency = frequency;
+  node->left = NULL;
+  node->right = NULL;
 
-// vypis adries symbol
-//  for (int i = 0; i < 25; i++) {
-//    printf("%p\n", (void *)&symbol[i]);
-//  }
+  // (node == NULL) {
+  // printf("Failed to create new Node!");
+  return node;
+  // }
+}
 
-// if (symbol[0].cnt == 0) {
-//   printf("ja symbol som nulovy");
-// }
+Minheap *new_minheap(int capacity) {
+  Minheap *minheap = (Minheap *)malloc(sizeof(Minheap));
+  minheap->size = 0;
+  minheap->capacity = capacity;
+  minheap->array = (Node **)malloc(capacity * sizeof(Node *));
+  return minheap;
+}
+
+void swap_nodes(Node **lesser, Node **greater) {
+  Node *tmp = *lesser;
+  *lesser = *greater;
+  *greater = tmp;
+}
+
+void insert_node_to_minheap(Minheap *minheap, Node *node) {
+  minheap->array[minheap->size] = node;
+
+  int i = minheap->size;
+  while (i > 0) {
+    if (minheap->array[i]->frequency < minheap->array[(i - 1) / 2]->frequency) {
+      swap_nodes(&minheap->array[i], &minheap->array[(i - 1) / 2]);
+      i = (i - 1) / 2;
+    } else {
+      break;
+    }
+  }
+
+  minheap->size++;
+}
+
+Node *push_root_node(Minheap *minheap) {
+  Node *temp = minheap->array[0];
+  minheap->array[0] = minheap->array[minheap->size - 1];
+  minheap->size--;
+
+  int i = 0;
+  while (i < minheap->size) {
+    int min = i;
+    int lc_index = 2 * i + 1;
+    int rc_index = 2 * i + 2;
+
+    if (lc_index < minheap->size &&
+        minheap->array[lc_index]->frequency < minheap->array[min]->frequency) {
+      min = lc_index;
+    }
+
+    if (rc_index < minheap->size &&
+        minheap->array[rc_index]->frequency < minheap->array[min]->frequency) {
+      min = rc_index;
+    }
+
+    if (min != i) {
+      swap_nodes(&minheap->array[min], &minheap->array[i]);
+      i = min;
+    }
+  }
+
+  return temp;
+}
+
+Node *huffman_tree(Symbol_Frequency *symbols, int capacity) {
+  Minheap *minheap = new_minheap(capacity);
+
+  for (int i = 0; i < capacity; i++) {
+    insert_node_to_minheap(minheap,
+                           new_node(symbols[i].symbol, symbols[i].frequency));
+  }
+
+  while (minheap->size > 1) {
+    Node *left = push_root_node(minheap);
+    Node *right = push_root_node(minheap);
+
+    Node *parent = new_node(0, left->frequency + right->frequency);
+    parent->left = left;
+    parent->right = right;
+
+    insert_node_to_minheap(minheap, parent);
+  }
+
+  return push_root_node(minheap);
+}
 
 int main(int argc, char *argv[]) {
-  int symbol_size = 52;
-  int input_size = 255;
-
-  char a = ' ';
-  printf("%c\n", a);
-  printf("%d\n", (int)a);
-
-  char *input = (char *)malloc(sizeof(char) * input_size);
-  if (input == NULL) {
-    printf("Mem alloc failed!");
-    return -1;
+  FILE *file = fopen("data.txt", "r");
+  if (file == NULL) {
+    printf("File open failed!");
+    return -2;
   }
 
-  int **symbol = (int **)malloc(sizeof(int *) * symbol_size);
-  if (symbol == NULL) {
-    printf("Mem alloc failed!");
-    return -1;
+  int frequency_arr[256] = {0};
+
+  int symbol;
+  while ((symbol = fgetc(file)) != EOF) {
+    frequency_arr[(unsigned char)symbol]++;
   }
 
-  for (int i = 0; i < symbol_size; i++) {
-    symbol[i] = (int *)malloc(sizeof(int) * 2);
+  fclose(file);
 
-    if (symbol[i] == NULL) {
-      printf("Mem alloc failed!");
-      return -1;
-    }
+  int capacity = 0;
+  for (int i = 0; i < 256; i++) {
+    if (frequency_arr[i] == 0)
+      continue;
 
-    symbol[i][1] = 0;
+    capacity++;
+    // printf("%d '%c'\n", frequency_arr[i], i);
   }
 
-  fgets(input, input_size, stdin);
+  Symbol_Frequency *symbols =
+      (Symbol_Frequency *)malloc(capacity * sizeof(Symbol_Frequency));
 
-  for (int i = 0; input[i] != '\0' && input[i] != '\n'; i++) {
-    for (int j = 0; j < symbol_size; j++) {
-      if (symbol[j][0] == (int)input[i] || symbol[j][1] == 0) {
-        symbol[j][0] = (int)input[i];
-        symbol[j][1]++;
-        break;
-      }
+  int index = 0;
+  for (int i = 0; i < 256; i++) {
+    if (frequency_arr[i] > 0) {
+      symbols[index].symbol = (unsigned char)i;
+      symbols[index].frequency = frequency_arr[i];
+      index++;
     }
   }
 
-  for (int i = 0; i < symbol_size; i++) {
-    if (symbol[i][1] == 0)
-      break;
-    printf("%c - count:%d\n", symbol[i][0], symbol[i][1]);
-  }
+  Node *huftree = huffman_tree(symbols, capacity);
 
-  free(input);
-  input = NULL;
+  // int symbol_size = 52;
+  // int input_size = 255;
+
+  // char *input = (char *)malloc(sizeof(char) * input_size);
+  // if (input == NULL) {
+  // printf("Mem alloc failed!");
+  // return -1;
+  // }
+
+  // int **symbol = (int **)malloc(sizeof(int *) * symbol_size);
+  // if (symbol == NULL) {
+  //   printf("Mem alloc failed!");
+  //   return -1;
+  // }
+
+  // for (int i = 0; i < symbol_size; i++) {
+  //   symbol[i] = (int *)malloc(sizeof(int) * 2);
+
+  //   if (symbol[i] == NULL) {
+  //     printf("Mem alloc failed!");
+  //     return -1;
+  //   }
+
+  //   symbol[i][1] = 0;
+  // }
+
+  // fgets(input, input_size, stdin);
+
+  // for (int i = 0; input[i] != '\0' && input[i] != '\n'; i++) {
+  //   for (int j = 0; j < symbol_size; j++) {
+  //     if (symbol[j][0] == (int)input[i] || symbol[j][1] == 0) {
+  //       symbol[j][0] = (int)input[i];
+  //       symbol[j][1]++;
+  //       break;
+  //     }
+  //   }
+  // }
+
+  // for (int i = 0; i < symbol_size; i++) {
+  //   if (symbol[i][1] == 0)
+  //     break;
+  //   printf("%c - count:%d\n", symbol[i][0], symbol[i][1]);
+  // }
+
+  // free(input);
+  // input = NULL;
 
   // prepared final output
   // int input_bytesize = 5000;
@@ -90,9 +208,10 @@ int main(int argc, char *argv[]) {
   // float avg_code = 4.28;
   // char integrity[] = "OK";
 
-  // printf("vstup: %d B, vystup: %d B\n", input_bytesize, output_bytesize);
-  // printf("kompresny pomer: %.2f\n", compression_ratio);
-  // printf("entropia: %.2f b/symbol, avg kod: %.2f b/symbol\n", entropy,
+  // printf("vstup: %d B, vystup: %d B\n", input_bytesize,
+  // output_bytesize); printf("kompresny pomer: %.2f\n",
+  // compression_ratio); printf("entropia: %.2f b/symbol, avg kod: %.2f
+  // b/symbol\n", entropy,
   //        avg_code);
   // printf("integrita: %s\n", integrity);
 
