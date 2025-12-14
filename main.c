@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#define CHARNUM 256
 
 typedef struct Node {
   unsigned char symbol;
@@ -18,6 +19,11 @@ typedef struct Symbol_Frequency {
   unsigned char symbol;
   int frequency;
 } Symbol_Frequency;
+
+typedef struct Code {
+  unsigned char symbol;
+  int bits[CHARNUM];
+} Code;
 
 Node *new_node(unsigned char symbol, int frequency) {
   Node *node = (Node *)malloc(sizeof(Node));
@@ -121,7 +127,7 @@ int main(int argc, char *argv[]) {
     return -2;
   }
 
-  int frequency_arr[256] = {0};
+  int frequency_arr[CHARNUM] = {0};
 
   int symbol;
   while ((symbol = fgetc(file)) != EOF) {
@@ -131,7 +137,7 @@ int main(int argc, char *argv[]) {
   fclose(file);
 
   int capacity = 0;
-  for (int i = 0; i < 256; i++) {
+  for (int i = 0; i < CHARNUM; i++) {
     if (frequency_arr[i] == 0)
       continue;
 
@@ -143,7 +149,7 @@ int main(int argc, char *argv[]) {
       (Symbol_Frequency *)malloc(capacity * sizeof(Symbol_Frequency));
 
   int index = 0;
-  for (int i = 0; i < 256; i++) {
+  for (int i = 0; i < CHARNUM; i++) {
     if (frequency_arr[i] > 0) {
       symbols[index].symbol = (unsigned char)i;
       symbols[index].frequency = frequency_arr[i];
@@ -152,53 +158,6 @@ int main(int argc, char *argv[]) {
   }
 
   Node *huftree = huffman_tree(symbols, capacity);
-
-  // int symbol_size = 52;
-  // int input_size = 255;
-
-  // char *input = (char *)malloc(sizeof(char) * input_size);
-  // if (input == NULL) {
-  // printf("Mem alloc failed!");
-  // return -1;
-  // }
-
-  // int **symbol = (int **)malloc(sizeof(int *) * symbol_size);
-  // if (symbol == NULL) {
-  //   printf("Mem alloc failed!");
-  //   return -1;
-  // }
-
-  // for (int i = 0; i < symbol_size; i++) {
-  //   symbol[i] = (int *)malloc(sizeof(int) * 2);
-
-  //   if (symbol[i] == NULL) {
-  //     printf("Mem alloc failed!");
-  //     return -1;
-  //   }
-
-  //   symbol[i][1] = 0;
-  // }
-
-  // fgets(input, input_size, stdin);
-
-  // for (int i = 0; input[i] != '\0' && input[i] != '\n'; i++) {
-  //   for (int j = 0; j < symbol_size; j++) {
-  //     if (symbol[j][0] == (int)input[i] || symbol[j][1] == 0) {
-  //       symbol[j][0] = (int)input[i];
-  //       symbol[j][1]++;
-  //       break;
-  //     }
-  //   }
-  // }
-
-  // for (int i = 0; i < symbol_size; i++) {
-  //   if (symbol[i][1] == 0)
-  //     break;
-  //   printf("%c - count:%d\n", symbol[i][0], symbol[i][1]);
-  // }
-
-  // free(input);
-  // input = NULL;
 
   // prepared final output
   // int input_bytesize = 5000;
